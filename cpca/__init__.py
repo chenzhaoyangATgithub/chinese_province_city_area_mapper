@@ -67,7 +67,7 @@ def _fill_city_map(city_map: AddrMap, record_dict):
         city_map.append_relational_addr('香港', pca_tuple, C)
     elif city_name == '澳门特别行政区':
         city_map.append_relational_addr('澳门', pca_tuple, C)
-    
+
 
 def _fill_province_map(province_map, record_dict):
     sheng = record_dict['sheng']
@@ -172,7 +172,6 @@ def _handle_one_record(addr, umap, cut, lookahead, pos_sensitive, open_warning):
 
     # 地名提取
     pca, addr = _extract_addr(addr, cut, lookahead)
-
     _fill_city(pca, umap, open_warning)
 
     _fill_province(pca)
@@ -253,9 +252,8 @@ def _jieba_extract(addr):
             _set_pca('city', word, city_map.get_full_name(word))
         elif word in province_map:
             _set_pca('province', word, province_map[word])
-        
-        pos += len(word)
 
+        pos += len(word)
     return result, addr[truncate:]
 
 
@@ -265,6 +263,9 @@ def _full_text_extract(addr, lookahead):
     result = Pca()
 
     truncate = 0
+
+    def _get_pca(pca_property):
+        return getattr(result,pca_property)
 
     def _set_pca(pca_property, pos, name, full_name):
         """pca_property: 'province', 'city' or 'area'"""
@@ -291,7 +292,9 @@ def _full_text_extract(addr, lookahead):
                 break
             word = addr[i:i + length]
             # 优先提取低级别的行政区 (主要是为直辖市和特别行政区考虑)
-            if word in area_map:
+            if (word + "区") in area_map:
+                defer_fun = _set_pca('area', i, word, area_map.get_full_name(word + "区"))
+            elif word in area_map:
                 defer_fun = _set_pca('area', i, word, area_map.get_full_name(word))
                 continue
             elif word in city_map:
@@ -305,5 +308,4 @@ def _full_text_extract(addr, lookahead):
             i += defer_fun()
         else:
             i += 1
-
     return result, addr[truncate:]
